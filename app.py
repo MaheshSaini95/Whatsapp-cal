@@ -94,14 +94,16 @@ def calculate(text):
     conn.commit()
     conn.close()
 
+   item_output = "\n".join(item_results)
+
     response = (
-        f"Title: {title}\n"
-        f"Date: {date_today}\n"
-        f"{'\n'.join(item_results)}\n"
-        f"Current Total = {format_number(total)}\n"
-        f"Due Amount = {format_number(due_amount)}\n"
-        f"Total = {format_number(grand_total)}"
-    )
+    f"Title: {title}\n"
+    f"Date: {date_today}\n"
+    f"{item_output}\n"
+    f"Current Total = {format_number(total)}\n"
+    f"Due Amount = {format_number(due_amount)}\n"
+    f"Total = {format_number(grand_total)}"
+)
 
     return response
 
