@@ -14,9 +14,9 @@ def calculate(text):
     results = []
 
     for line in lines:
-        cleaned_line = re.sub(r'[×xX*]', '*', line)
-
+        cleaned_line = re.sub(r'[×xX]', '*', line)  # Normalize × x X to *
         match = re.search(r'(\d+\.?\d*)\s*([\+\-\*/])\s*(\d+\.?\d*)', cleaned_line)
+        
         if match:
             num1 = float(match.group(1))
             operator = match.group(2)
@@ -46,10 +46,15 @@ def calculate(text):
     results.append(f"Total = {format_number(total)}")
     return "\n".join(results)
 
+@app.route("/", methods=["GET"])
+def home():
+    return "WhatsApp Bot is Live!", 200
+
 @app.route("/whatsapp", methods=["GET", "POST"])
 def reply_whatsapp():
     if request.method == "GET":
         return "OK", 200
+    
     incoming_msg = request.values.get('Body', '')
     print(f"Incoming message: {incoming_msg}")
     reply_text = calculate(incoming_msg)
