@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 # Initialize database
 def init_db():
-    conn = sqlite3.connect("transactions.db")
+    conn = sqlite3.connect(os.path.join(os.getcwd(), "transactions.db"))
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
@@ -37,7 +37,16 @@ def calculate(text):
     if not lines:
         return "Please enter a title and items."
 
+    # Use title if provided, otherwise assign default "userX"
     title = lines[0].strip()
+    if not title:
+        conn = sqlite3.connect("transactions.db")
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM transactions WHERE title LIKE 'user%'")
+        count = c.fetchone()[0] + 1
+        conn.close()
+        title = f"user{count}"
+
     item_lines = lines[1:]
     total = 0
     due_amount = 0
@@ -96,7 +105,7 @@ def calculate(text):
     item_output = "\n".join(item_results)
 
     response = (
-        f"Title: {title}\n"
+        f"Name: {title}\n"
         f"Date: {date_today}\n"
         f"{item_output}\n"
         f"Current Total = {format_number(total)}\n"
