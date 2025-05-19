@@ -27,17 +27,17 @@ def init_db():
 
 init_db()
 
-# Format number to remove .0 unless necessary
+# Format number
 def format_number(n):
     return int(n) if n == int(n) else round(n, 2)
 
-# Main calculation and DB store logic
+# Calculate logic
 def calculate(text):
     lines = text.strip().split("\n")
     if not lines:
         return "Please enter a title and items."
 
-    # Use title if provided, otherwise assign default "userX"
+    # Get title or assign "userX" if empty
     title = lines[0].strip()
     if not title:
         conn = sqlite3.connect("transactions.db")
@@ -92,7 +92,7 @@ def calculate(text):
     grand_total = total + due_amount
     date_today = datetime.now().strftime("%Y-%m-%d")
 
-    # Store to database
+    # Save to DB
     conn = sqlite3.connect("transactions.db")
     c = conn.cursor()
     c.execute("""
@@ -102,17 +102,14 @@ def calculate(text):
     conn.commit()
     conn.close()
 
-    item_output = "\n".join(item_results)
-
     response = (
         f"Name: {title}\n"
         f"Date: {date_today}\n"
-        f"{item_output}\n"
+        f"{chr(10).join(item_results)}\n"
         f"Current Total = {format_number(total)}\n"
         f"Due Amount = {format_number(due_amount)}\n"
         f"Total = {format_number(grand_total)}"
     )
-
     return response
 
 @app.route("/", methods=["GET"])
@@ -134,5 +131,5 @@ def reply_whatsapp():
     return str(resp)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 50))
+    port = int(os.environ.get("PORT", 5000))  # Changed default from 50 to 5000 (typical)
     app.run(host="0.0.0.0", port=port)
