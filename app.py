@@ -7,9 +7,13 @@ import re
 
 app = Flask(__name__)
 
+# Absolute path to ensure the database file is saved consistently
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "transactions.db")
+
 # Initialize database
 def init_db():
-    conn = sqlite3.connect(os.path.join(os.getcwd(), "transactions.db"))
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
@@ -37,10 +41,9 @@ def calculate(text):
     if not lines:
         return "Please enter a title and items."
 
-    # Get title or assign "userX" if empty
     title = lines[0].strip()
     if not title:
-        conn = sqlite3.connect("transactions.db")
+        conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         c.execute("SELECT COUNT(*) FROM transactions WHERE title LIKE 'user%'")
         count = c.fetchone()[0] + 1
@@ -92,15 +95,18 @@ def calculate(text):
     grand_total = total + due_amount
     date_today = datetime.now().strftime("%Y-%m-%d")
 
-    # Save to DB
-    conn = sqlite3.connect("transactions.db")
-    c = conn.cursor()
-    c.execute("""
-        INSERT INTO transactions (title, date, items, current_total, due_amount, grand_total)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (title, date_today, "\n".join(item_results), total, due_amount, grand_total))
-    conn.commit()
-    conn.close()
+    # Save to database
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO transactions (title, date, items, current_total, due_amount, grand_total)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (title, date_today, "\n".join(item_results), total, due_amount, grand_total))
+        conn.commit()
+        conn.close()
+    except Exception as db_error:
+        return f"Database Error: {str(db_error)}"
 
     response = (
         f"Name: {title}\n"
@@ -131,5 +137,5 @@ def reply_whatsapp():
     return str(resp)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Changed default from 50 to 5000 (typical)
+    port = int(os.environ.get("PORT", 5000))  # Use 5000 or Render-specified port
     app.run(host="0.0.0.0", port=port)
