@@ -2,22 +2,21 @@ import os
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
 from datetime import datetime
-import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
 import re
 
 app = Flask(__name__)
 
-# Absolute path to ensure the database file is saved consistently
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "transactions.db")
+DATABASE_URL = os.environ.get("DATABASE_URL")  # Get PostgreSQL connection string from environment
 
 # Initialize database
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = psycopg2.connect(DATABASE_URL)
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             title TEXT,
             date TEXT,
             items TEXT,
@@ -27,15 +26,14 @@ def init_db():
         )
     """)
     conn.commit()
+    c.close()
     conn.close()
 
 init_db()
 
-# Format number
 def format_number(n):
     return int(n) if n == int(n) else round(n, 2)
 
-# Calculate logic
 def calculate(text):
     lines = text.strip().split("\n")
     if not lines:
@@ -43,10 +41,11 @@ def calculate(text):
 
     title = lines[0].strip()
     if not title:
-        conn = sqlite3.connect(DB_PATH)
+        conn = psycopg2.connect(DATABASE_URL)
         c = conn.cursor()
         c.execute("SELECT COUNT(*) FROM transactions WHERE title LIKE 'user%'")
         count = c.fetchone()[0] + 1
+        c.close()
         conn.close()
         title = f"user{count}"
 
@@ -95,15 +94,15 @@ def calculate(text):
     grand_total = total + due_amount
     date_today = datetime.now().strftime("%Y-%m-%d")
 
-    # Save to database
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = psycopg2.connect(DATABASE_URL)
         c = conn.cursor()
         c.execute("""
             INSERT INTO transactions (title, date, items, current_total, due_amount, grand_total)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """, (title, date_today, "\n".join(item_results), total, due_amount, grand_total))
         conn.commit()
+        c.close()
         conn.close()
     except Exception as db_error:
         return f"Database Error: {str(db_error)}"
@@ -137,5 +136,5 @@ def reply_whatsapp():
     return str(resp)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Use 5000 or Render-specified port
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

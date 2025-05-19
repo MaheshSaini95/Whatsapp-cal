@@ -1,2 +1,3 @@
 Flask
 twilio
+psycopg2-binary
